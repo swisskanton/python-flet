@@ -1,16 +1,23 @@
-import time
-
 import flet as ft
 from pdf2image import convert_from_path
 import PyPDF2
 
 
 def main(page: ft.Page):
-    page.title = "PDF kezelő"
+    page.title = "Órarend konvertáló - PDF-ből képek"
     # page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     # page.scroll = ft.ScrollMode.AUTO
     progress_ring = ft.ProgressRing()
     page.theme_mode = "light"
+    page.window_resizable = False
+    page.window_maximizable = False
+    page.window_height = 650
+    page.window_width = 510
+
+    def page_resize(e):
+        print("New page size:", page.window_width, page.window_height)
+
+    page.on_resize = page_resize
 
     def change_theme(e):
         page.theme_mode = "light" if page.theme_mode == "dark" else "dark"
@@ -35,16 +42,21 @@ def main(page: ft.Page):
 
     def teachers_pdf_to_images(path, file_name):
         new_path = path[:path.index(file_name)]
+        teachers_created.controls.append(ft.Text('PDF olvasás.'))
+        teachers_created.update()
         try:
             pdf_file_obj = open(path, 'rb')
             pdf_reader = PyPDF2.PdfReader(pdf_file_obj)
-
+            teachers_created.controls.append(ft.Text('PDF olvasás befejeződött.'))
+            teachers_created.controls.append(ft.Text('Kép generálá folyamatban.'))
+            teachers_created.update()
             images = convert_from_path(path)
+            teachers_created.controls = []
             for i, img in enumerate(images):
                 page_obj = pdf_reader.pages[i]
                 text = page_obj.extract_text()
                 name = text[text.index('Tanár') + 6:].replace(' ', '_')
-                # img.save(new_path + f'orarend{i}_{name}.png', 'PNG')
+                img.save(new_path + f'orarend{i}_{name}.png', 'PNG')
                 # print(file_selector.controls, ft.ProgressRing(), progress_ring in file_selector.controls)
                 if progress_ring in teachers_file_selector.controls:
                     remove_progress_ring(teachers_file_selector)
@@ -72,6 +84,7 @@ def main(page: ft.Page):
         # print('\nfiles: ', e.files, '\nname: ', e.name, '\npath: ', e.path, '\ncontrol:', e.control, '\npage: ',
         #        e.page, '\ndata: ', e.data, '\ntarget: ', e.target)
         teachers_selected_files.value = (", ".join(map(lambda f: f.name, e.files)) if e.files else "Cancelled!")
+        teachers_selected_files.update()
         if teachers_selected_files.value != 'Cancelled!':
             teachers_selected_files.update()
             teachers_file_selector.controls.append(progress_ring)
@@ -88,18 +101,23 @@ def main(page: ft.Page):
         # print(path, file_name)
         new_path = path[:path.index(file_name)]
         # print('path:', path, '\nfile name:', file_name, '\nnew path:', new_path)
+        classes_created.controls.append(ft.Text('PDF olvasás.'))
+        classes_created.update()
         try:
             pdf_file_obj = open(path, 'rb')
             pdf_reader = PyPDF2.PdfReader(pdf_file_obj)
-
+            classes_created.controls.append(ft.Text('PDF olvasás befejeződött.'))
+            classes_created.controls.append(ft.Text('Kép generálá folyamatban.'))
+            classes_created.update()
             images = convert_from_path(path)
+            classes_created.controls = []
             print('Creating images has been done.')
             for i, img in enumerate(images):
                 page_obj = pdf_reader.pages[i]
                 text = page_obj.extract_text()
                 name = text.split()[-1] if text.split()[-1] not in ['váll', 'psz', 'szoft'] else text.split()[-2]
                 name = name.replace(' ', '_').replace('/', '_').replace('\\', '-')
-                # img.save(new_path + f'orarend{i}_{name}.png', 'PNG')
+                img.save(new_path + f'orarend{i}_{name}.png', 'PNG')
 
                 if progress_ring in classes_file_selector.controls:
                     remove_progress_ring(classes_file_selector)
@@ -129,6 +147,7 @@ def main(page: ft.Page):
         # print(e.__dir__())
         # print('files:', e.files, '\npath:', e.files[0].path, '\nfile name:', e.files[0].name)
         classes_selected_files.value = (", ".join(map(lambda f: f.name, e.files)) if e.files else "Cancelled!")
+        classes_selected_files.update()
         if classes_selected_files.value != 'Cancelled!':
             classes_selected_files.update()
             classes_file_selector.controls.append(progress_ring)
@@ -178,7 +197,7 @@ def main(page: ft.Page):
 
     teachers_created = ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.START,
-            width=500,
+            width=450,
             height=500,
             scroll=ft.ScrollMode.AUTO,
     )
@@ -186,14 +205,14 @@ def main(page: ft.Page):
     teachers_content = ft.Container(
         content=teachers_created,
         bgcolor='#008080',
-        height=500,
-        padding=ft.padding.only(left=30, top=10, bottom=10),
-        border_radius=30
+        height=450,
+        padding=ft.padding.only(left=30, top=20, bottom=20),
+        border_radius=20
     )
 
     classes_created = ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.START,
-            width=500,
+            width=450,
             height=500,
             scroll=ft.ScrollMode.AUTO,
     )
@@ -201,18 +220,37 @@ def main(page: ft.Page):
     classes_content = ft.Container(
         content=classes_created,
         bgcolor='#008080',
-        height=500,
+        height=450,
         padding=ft.padding.only(left=30, top=10, bottom=10),
-        border_radius=30
+        border_radius=20
     )
 
     teachers_column = ft.Column([teachers_file_selector, teachers_content], expand=1)
     classes_column = ft.Column([classes_file_selector, classes_content], expand=1)
 
-    page.add(ft.Row([
-            teachers_column,
-            classes_column
+    # page.add(ft.Row([
+    #         teachers_column,
+    #         classes_column
+    #         ],
+    #     )
+    # )
+
+    page.add(
+        ft.Tabs(
+            selected_index=0,
+            animation_duration=300,
+            tabs=[
+                ft.Tab(
+                    text="Tanári órarendek konvertálása",
+                    content=teachers_column,
+                ),
+                ft.Tab(
+                    text="Osztály órarendek konvertálása",
+                    # tab_content=ft.Icon(ft.icons.SEARCH),
+                    content=classes_column,
+                )
             ],
+            expand=1,
         )
     )
 
