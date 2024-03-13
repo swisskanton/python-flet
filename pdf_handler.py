@@ -1,6 +1,6 @@
 import flet as ft
-from pdf2image import convert_from_path
 import PyPDF2
+import fitz
 
 
 def main(page: ft.Page):
@@ -30,7 +30,8 @@ def main(page: ft.Page):
         selected_icon="light_mode",
         style=ft.ButtonStyle(
             # change color if light and dark
-            color="white" if page.theme_mode == "dark" else "bkack"
+            color={"selected": ft.colors.WHITE, "": ft.colors.BLACK}
+            # "white" if page.theme_mode == "dark" else "black"
             # {"": ft.colors.WHITE, "selected": ft.colors.BLACK}
         )
     )
@@ -50,31 +51,32 @@ def main(page: ft.Page):
             teachers_created.controls.append(ft.Text('PDF olvasás befejeződött.'))
             teachers_created.controls.append(ft.Text('Kép generálá folyamatban.'))
             teachers_created.update()
-            images = convert_from_path(path)
+            doc = fitz.open(path)
             teachers_created.controls = []
-            for i, img in enumerate(images):
-                page_obj = pdf_reader.pages[i]
+            for pg in doc:
+                page_obj = pdf_reader.pages[pg.number]
                 text = page_obj.extract_text()
                 name = text[text.index('Tanár') + 6:].replace(' ', '_')
-                img.save(new_path + f'orarend{i}_{name}.png', 'PNG')
-                # print(file_selector.controls, ft.ProgressRing(), progress_ring in file_selector.controls)
+                pix = pg.get_pixmap()
+                pix.save(new_path + f'orarend{pg.number+1}_{name}.png')
+
                 if progress_ring in teachers_file_selector.controls:
                     remove_progress_ring(teachers_file_selector)
-                teachers_created.controls.append(ft.Text(f'{i+1}. orarend{i+1}_{name}.png'))
+                teachers_created.controls.append(ft.Text(f'{pg.number+1}. orarend{pg.number+1}_{name}.png'))
                 page.update()
         except FileNotFoundError:
             print("NO pdf found")
-            teachers_created.controls.append(ft.Text("NO pdf found"))
+            teachers_created.controls.append(ft.Text("PDF nem található."))
             teachers_created.update()
             remove_progress_ring(teachers_file_selector)
         except FileExistsError:
             print('File already exists.')
-            teachers_created.controls.append(ft.Text('File already exists.'))
+            teachers_created.controls.append(ft.Text('A fájl már létezik.'))
             teachers_created.update()
             remove_progress_ring(teachers_file_selector)
         except:
             print('Something went wrong')
-            teachers_created.controls.append(ft.Text('Something went wrong'))
+            teachers_created.controls.append(ft.Text('Hiba lépett elő.'))
             teachers_created.update()
             remove_progress_ring(teachers_file_selector)
         else:
@@ -101,6 +103,7 @@ def main(page: ft.Page):
         # print(path, file_name)
         new_path = path[:path.index(file_name)]
         # print('path:', path, '\nfile name:', file_name, '\nnew path:', new_path)
+
         classes_created.controls.append(ft.Text('PDF olvasás.'))
         classes_created.update()
         try:
@@ -109,35 +112,36 @@ def main(page: ft.Page):
             classes_created.controls.append(ft.Text('PDF olvasás befejeződött.'))
             classes_created.controls.append(ft.Text('Kép generálá folyamatban.'))
             classes_created.update()
-            images = convert_from_path(path)
+            doc = fitz.open(path)
             classes_created.controls = []
             print('Creating images has been done.')
-            for i, img in enumerate(images):
-                page_obj = pdf_reader.pages[i]
+            for pg in doc:
+                page_obj = pdf_reader.pages[pg.number]
                 text = page_obj.extract_text()
                 name = text.split()[-1] if text.split()[-1] not in ['váll', 'psz', 'szoft'] else text.split()[-2]
                 name = name.replace(' ', '_').replace('/', '_').replace('\\', '-')
-                img.save(new_path + f'orarend{i}_{name}.png', 'PNG')
+                pix = pg.get_pixmap()
+                pix.save(new_path + f'orarend{pg.number+1}_{name}.png')
 
                 if progress_ring in classes_file_selector.controls:
                     remove_progress_ring(classes_file_selector)
-                print(f'{i+1}. orarend{i+1}_{name}.png')
-                print(new_path + f'orarend{i}_{name}.png')
-                classes_created.controls.append(ft.Text(f'{i+1}. orarend{i+1}_{name}.png', size=15))
+                print(f'{pg.number+1}. orarend{pg.number+1}_{name}.png')
+                print(new_path + f'orarend{pg.number+1}_{name}.png')
+                classes_created.controls.append(ft.Text(f'{pg.number+1}. orarend{pg.number+1}_{name}.png', size=15))
                 page.update()
         except FileNotFoundError:
             print("NO pdf found")
-            classes_created.controls.append(ft.Text("NO pdf found"))
+            classes_created.controls.append(ft.Text("PDF nem található."))
             classes_created.update()
             remove_progress_ring(classes_file_selector)
         except FileExistsError:
             print('File already exists.')
-            classes_created.controls.append(ft.Text('File already exists.'))
+            classes_created.controls.append(ft.Text('A fájl már létezik.'))
             classes_created.update()
             remove_progress_ring(classes_file_selector)
         except:
             print('Something went wrong')
-            classes_created.controls.append(ft.Text('Something went wrong'))
+            classes_created.controls.append(ft.Text('Hiba lépett elő.'))
             classes_created.update()
             remove_progress_ring(classes_file_selector)
         else:
